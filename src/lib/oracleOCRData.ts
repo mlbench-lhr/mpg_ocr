@@ -60,6 +60,7 @@ export async function getOracleOCRData(
     const createdDate = url.searchParams.get("createdDate") || "";
     const updatedDate = url.searchParams.get("updatedDate") || "";
     const uptd_Usr_Cd = url.searchParams.get("uptd_Usr_Cd") || "";
+    const podDate = url.searchParams.get("podDate") || "";
     const fileId = url.searchParams.get("fileId")?.trim().toLowerCase() || "";
     const fileName =
       url.searchParams.get("fileName")?.trim().toLowerCase() || "";
@@ -201,6 +202,14 @@ export async function getOracleOCRData(
       whereClauses.push(`LOWER(ocr.FILE_ID) LIKE :fileId`);
       filterBinds.fileId = `%${fileId}%`;
     }
+
+    if (podDate) {
+      whereClauses.push(
+        `TO_DATE(ocr.OCR_STMP_POD_DTT, 'MM/DD/YY') = TO_DATE(:podDate, 'YYYY-MM-DD')`
+      );
+      filterBinds.podDate = podDate;
+    }
+
     if (fileName) {
       whereClauses.push(`LOWER(pod.FILE_NAME) LIKE :fileName`);
       filterBinds.fileName = `%${fileName}%`;
