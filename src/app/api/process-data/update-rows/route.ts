@@ -98,6 +98,7 @@ export async function PUT(req: Request) {
 
     for (const job of jobsToUpdate) {
       let { fileId } = job;
+      console.log("Processing job:", job);
 
       const file_name = job.pdfUrl.split("/").pop() || "";
       const currentYear = new Date().getFullYear();
@@ -144,22 +145,7 @@ export async function PUT(req: Request) {
       }
 
       // handle podDate formatting...
-      let podDateValue = null;
-      if (job.podDate) {
-        const columnTypeQuery = await conn.execute(
-          `SELECT DATA_TYPE 
-         FROM ALL_TAB_COLUMNS 
-         WHERE OWNER = '${process.env.ORACLE_DB_USER_NAME}' AND TABLE_NAME = 'XTI_FILE_POD_OCR_T' AND COLUMN_NAME = 'OCR_STMP_POD_DTT'`,
-          [],
-          { outFormat: oracledb.OUT_FORMAT_OBJECT }
-        );
-        const rows = columnTypeQuery.rows as
-          | Array<{ DATA_TYPE: string }>
-          | undefined;
-        const columnType = rows?.[0]?.DATA_TYPE ?? null;
-        podDateValue =
-          columnType === "DATE" ? new Date(job.podDate) : job.podDate;
-      }
+    
 
       // check for existing record in OCR table
       const existingCheck = await conn.execute(
@@ -188,17 +174,17 @@ export async function PUT(req: Request) {
              UPTD_DTT = SYSDATE
          WHERE FILE_ID = :fileId`,
           {
-            bolNo: job.blNumber,
-            issQty: job.totalQty,
-            rcvQty: job.received,
-            podDate: podDateValue,
-            sign: job.podSignature,
-            symtNone: "N",
-            symtDamg: job.damaged,
-            symtShrt: job.short,
-            symtOrvg: job.over,
-            symtRefs: job.refused,
-            symtSeal: job.sealIntact,
+            bolNo: job.blNumber?.toString(),
+            issQty: Number(job.totalQty),
+            rcvQty: Number(job.received),
+            podDate: job?.podDate,
+            sign: job.podSignature === "yes" ? "Y" : "N",
+            symtNone: 0,
+            symtDamg: Number(job.damaged),
+            symtShrt: Number(job.short),
+            symtOrvg: Number(job.over),
+            symtRefs: Number(job.refused),
+            symtSeal: job.sealIntact ?? "N",
             fileId,
           }
         );
@@ -220,18 +206,18 @@ export async function PUT(req: Request) {
            :symtNone, :symtDamg, :symtShrt, :symtOrvg, :symtRefs, :symtSeal,
            SYSDATE, 'OCR', SYSDATE)`,
           {
+            bolNo: job.blNumber?.toString(),
+            issQty: Number(job.totalQty),
+            rcvQty: Number(job.received),
+            podDate: job?.podDate,
+            sign: job.podSignature === "yes" ? "Y" : "N",
+            symtNone: 0,
+            symtDamg: Number(job.damaged),
+            symtShrt: Number(job.short),
+            symtOrvg: Number(job.over),
+            symtRefs: Number(job.refused),
+            symtSeal: job.sealIntact ?? "N",
             fileId,
-            bolNo: job.blNumber,
-            issQty: job.totalQty,
-            rcvQty: job.received,
-            podDate: podDateValue,
-            sign: job.podSignature,
-            symtNone: "N",
-            symtDamg: job.damaged,
-            symtShrt: job.short,
-            symtOrvg: job.over,
-            symtRefs: job.refused,
-            symtSeal: job.sealIntact,
           }
         );
         logs.push({
