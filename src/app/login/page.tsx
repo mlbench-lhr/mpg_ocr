@@ -7,7 +7,6 @@ import Link from "next/link";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
 import ResetPasswordModal from "../components/ResetPasswordModal";
 import Router from "next/router";
-import Cookie from "js-cookie";
 import { storeToken } from "@/lib/auth/storeToken";
 
 

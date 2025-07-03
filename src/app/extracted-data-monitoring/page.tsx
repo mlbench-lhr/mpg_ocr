@@ -25,7 +25,6 @@ import UploadModal from "../components/UploadModal";
 import { FiUpload } from "react-icons/fi";
 import FileNameCell from "../components/UI/FileNameCell";
 import axios from "axios";
-import { getTruncatedText } from "@/lib/truncate";
 import TruncatedCell from "../components/UI/TrucatedCell";
 
 type FinalStatus =
@@ -184,7 +183,6 @@ const MasterPage = () => {
   const [baseUrl, setBaseUrl] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
-  const [showFull, setShowFull] = useState(false);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [db, setDb] = useState<string>();
 
@@ -2060,15 +2058,7 @@ const MasterPage = () => {
                         </td>
                       </tr>
                     ) : (
-                      master.map((job) => {
-                        const textToShow = job.fileId || job._id || "N/A";
-
-                        const { displayText, isTruncated } = getTruncatedText(
-                          textToShow,
-                          15,
-                          showFull
-                        );
-                    
+                      master.map((job) => {                   
                         return (
                           <tr key={job._id} className="text-gray-500">
                             <td className="py-2 px-4 border-b text-start m-0 sticky left-0 bg-white z-10">
