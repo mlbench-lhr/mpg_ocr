@@ -438,6 +438,7 @@ const MasterPage = () => {
 
         if (data.ip) {
           setOcrApiUrl(`http://${data.ip}:8080/run-ocr`);
+          // setOcrApiUrl(`https://pj7kx03k4bklhr-8080.proxy.runpod.net/docs`);
           setBaseUrl(`http://${data.secondaryIp}:3000`);
         }
       } catch (error) {
@@ -476,6 +477,8 @@ const MasterPage = () => {
       return null;
     })
     .filter(Boolean);
+
+  console.log("pdfFiles-> ", pdfFiles);
 
   const mergeOcrDataIntoMaster = (ocrData: OcrJob[]) => {
     setMaster((prevMaster) => {
@@ -555,25 +558,191 @@ const MasterPage = () => {
     setIsProcessModalOpen(true);
     setProgress({});
 
-    async function processPdfsSequentially() {
-      for (const pdfFile of pdfFiles) {
-        if (!pdfFile?.file_url_or_path) continue;
-        const filePath = pdfFile.file_url_or_path;
-        const fileId = pdfFile._id;
+    // async function processPdfsSequentially() {
+    //   for (const pdfFile of pdfFiles) {
+    //     if (!pdfFile?.file_url_or_path) continue;
+    //     const filePath = pdfFile.file_url_or_path;
+    //     const fileId = pdfFile._id;
 
-        setProgress((prev) => ({
-          ...prev,
-          [filePath]: 10,
-        }));
+    //     setProgress((prev) => ({
+    //       ...prev,
+    //       [filePath]: 10,
+    //     }));
+
+    //     try {
+    //       const ocrResponse = await fetch(ocrApiUrl, {
+    //         method: "POST",
+    //         headers: { "Content-Type": "application/json" },
+    //         body: JSON.stringify({
+    //           _id: fileId,
+    //           file_url_or_path: filePath,
+    //         }),
+    //         signal: abortController.signal,
+    //       });
+
+    //       if (!ocrResponse.ok) {
+    //         const errorData = await ocrResponse.json().catch(() => null);
+    //         throw new Error(errorData?.error || "Failed to process OCR");
+    //       }
+    //       const ocrData = await ocrResponse.json();
+    //       console.log("ocr dtaa-> ", ocrData);
+
+    //       if (ocrData && Array.isArray(ocrData)) {
+    //         if (db === "remote") {
+    //           mergeOcrDataIntoMaster(ocrData);
+    //         }
+    //         const processedDataArray = ocrData.map((data) => {
+    //           const recognitionStatusMap: Record<
+    //             "failed" | "partially valid" | "valid" | "null",
+    //             string
+    //           > = {
+    //             failed: "failure",
+    //             "partially valid": "partiallyValid",
+    //             valid: "valid",
+    //             null: "null",
+    //           };
+    //           const status =
+    //             (data?.Status as keyof typeof recognitionStatusMap) || "null";
+    //           const recognitionStatus = recognitionStatusMap[status] || "null";
+
+    //           const urlObj = new URL(filePath);
+    //           const filename = urlObj.searchParams.get("filename") || "";
+    //           const decodedFilePath = `/file/${decodeURIComponent(filename)}`;
+
+    //           return {
+    //             jobId: null,
+    //             pdfUrl: decodedFilePath,
+    //             fileId: data?._id,
+    //             deliveryDate: new Date().toISOString().split("T")[0],
+    //             noOfPages: 1,
+    //             blNumber: data?.B_L_Number || "",
+    //             podDate: data?.POD_Date || "",
+    //             podSignature:
+    //               data?.Signature_Exists === "yes"
+    //                 ? "yes"
+    //                 : data?.Signature_Exists === "no"
+    //                 ? "no"
+    //                 : data?.Signature_Exists,
+    //             totalQty: isNaN(data?.Issued_Qty)
+    //               ? data?.Issued_Qty
+    //               : Number(data?.Issued_Qty),
+    //             received: data?.Received_Qty,
+    //             damaged: data?.Damage_Qty,
+    //             short: data?.Short_Qty,
+    //             over: data?.Over_Qty,
+    //             refused: data?.Refused_Qty,
+    //             customerOrderNum: data?.Customer_Order_Num,
+    //             stampExists:
+    //               data?.Stamp_Exists === "yes"
+    //                 ? "yes"
+    //                 : data?.Stamp_Exists === "no"
+    //                 ? "no"
+    //                 : data?.Stamp_Exists,
+    //             uptd_Usr_Cd: "OCR",
+    //             finalStatus: "valid",
+    //             reviewStatus: "unConfirmed",
+    //             recognitionStatus: recognitionStatus,
+    //             breakdownReason: "none",
+    //             reviewedBy: "OCR Engine",
+    //             cargoDescription: "Processed from OCR API.",
+    //             sealIntact:
+    //               data?.Seal_Intact === "yes"
+    //                 ? "Y"
+    //                 : data?.Seal_Intact === "no"
+    //                 ? "N"
+    //                 : data?.Seal_Intact,
+    //           };
+    //         });
+
+    //         const saveResponse = await fetch("/api/process-data/save-data", {
+    //           method: "POST",
+    //           headers: { "Content-Type": "application/json" },
+    //           body: JSON.stringify(processedDataArray),
+    //         });
+    //         // const data = await saveResponse.json();
+
+    //         if (!saveResponse.ok) {
+    //           console.error("Error saving data:", await saveResponse.json());
+    //         } else {
+    //           // console.log("OCR data saved successfully.");
+    //         }
+    //       }
+
+    //       let progressValue = 1;
+
+    //       while (progressValue < 100) {
+    //         await new Promise((resolve) => setTimeout(resolve, 1000));
+    //         progressValue += 25;
+    //         setProgress((prev) => ({
+    //           ...prev,
+    //           [filePath]: progressValue,
+    //         }));
+    //       }
+
+    //       setProgress((prev) => ({ ...prev, [filePath]: 100 }));
+    //     } catch (error: unknown) {
+    //       if (error instanceof Error) {
+    //         if (error.name === "AbortError") {
+    //           // console.log(`OCR request was aborted for: ${filePath}`);
+    //           return;
+    //         }
+    //         console.error(`Error processing ${filePath}:`, error);
+    //       } else {
+    //         console.error(`Unexpected error processing ${filePath}:`, error);
+    //       }
+
+    //       setProgress((prev) => ({
+    //         ...prev,
+    //         [filePath]: 1,
+    //       }));
+    //     }
+    //   }
+
+    //   const newStatus = "stop";
+    //   await fetch("/api/jobs/ocr", {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({ status: newStatus }),
+    //   });
+
+    //   setIsOcrRunning(false);
+    //   setIsProcessModalOpen(false);
+    //   setSelectedRows([]);
+    //   setProgress({});
+    //   if (db !== "remote") {
+    //     fetchJobs();
+    //   }
+    // }
+    async function processPdfsSequentially() {
+      const batchSize = 4;
+
+      for (let i = 0; i < pdfFiles.length; i += batchSize) {
+        const batch = pdfFiles
+          .slice(i, i + batchSize)
+          .filter(
+            (f): f is { file_url_or_path: string; _id: string } => f !== null
+          );
+        console.log("Processing batch:", batch);
+        // Set initial progress
+        batch.forEach((pdfFile) => {
+          if (!pdfFile || !pdfFile.file_url_or_path) return;
+
+          setProgress((prev) => ({
+            ...prev,
+            [pdfFile.file_url_or_path]: 10,
+          }));
+        });
 
         try {
+          const payload = batch.map((pdfFile) => ({
+            _id: pdfFile._id,
+            file_url_or_path: pdfFile.file_url_or_path,
+          }));
+
           const ocrResponse = await fetch(ocrApiUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              _id: fileId,
-              file_url_or_path: filePath,
-            }),
+            body: JSON.stringify(payload),
             signal: abortController.signal,
           });
 
@@ -581,13 +750,15 @@ const MasterPage = () => {
             const errorData = await ocrResponse.json().catch(() => null);
             throw new Error(errorData?.error || "Failed to process OCR");
           }
+
           const ocrData = await ocrResponse.json();
-          console.log("ocr dtaa-> ", ocrData);
+          console.log("OCR data received:", ocrData);
 
           if (ocrData && Array.isArray(ocrData)) {
             if (db === "remote") {
               mergeOcrDataIntoMaster(ocrData);
             }
+
             const processedDataArray = ocrData.map((data) => {
               const recognitionStatusMap: Record<
                 "failed" | "partially valid" | "valid" | "null",
@@ -602,7 +773,8 @@ const MasterPage = () => {
                 (data?.Status as keyof typeof recognitionStatusMap) || "null";
               const recognitionStatus = recognitionStatusMap[status] || "null";
 
-              const urlObj = new URL(filePath);
+              const matchingFile = batch.find((f) => f._id === data?._id);
+              const urlObj = new URL(matchingFile?.file_url_or_path || "");
               const filename = urlObj.searchParams.get("filename") || "";
               const decodedFilePath = `/file/${decodeURIComponent(filename)}`;
 
@@ -656,50 +828,43 @@ const MasterPage = () => {
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(processedDataArray),
             });
-            // const data = await saveResponse.json();
 
             if (!saveResponse.ok) {
               console.error("Error saving data:", await saveResponse.json());
-            } else {
-              // console.log("OCR data saved successfully.");
             }
           }
 
-          let progressValue = 1;
-
-          while (progressValue < 100) {
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            progressValue += 25;
+          // Simulate progress update
+          for (let p = 25; p <= 100; p += 25) {
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            batch.forEach((pdfFile) => {
+              setProgress((prev) => ({
+                ...prev,
+                [pdfFile.file_url_or_path]: p,
+              }));
+            });
+          }
+        } catch (error) {
+          batch.forEach((pdfFile) => {
             setProgress((prev) => ({
               ...prev,
-              [filePath]: progressValue,
+              [pdfFile.file_url_or_path]: 1,
             }));
+          });
+
+          if (error instanceof Error && error.name === "AbortError") {
+            return;
           }
 
-          setProgress((prev) => ({ ...prev, [filePath]: 100 }));
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            if (error.name === "AbortError") {
-              // console.log(`OCR request was aborted for: ${filePath}`);
-              return;
-            }
-            console.error(`Error processing ${filePath}:`, error);
-          } else {
-            console.error(`Unexpected error processing ${filePath}:`, error);
-          }
-
-          setProgress((prev) => ({
-            ...prev,
-            [filePath]: 1,
-          }));
+          console.error("OCR batch error:", error);
         }
       }
 
-      const newStatus = "stop";
+      // Stop OCR at the end
       await fetch("/api/jobs/ocr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status: "stop" }),
       });
 
       setIsOcrRunning(false);
@@ -1034,30 +1199,6 @@ const MasterPage = () => {
     setSortOrder(value);
     setFirstTime(true);
   };
-
-  // const handleSend = () => {
-  //   Swal.fire({
-  //     title: 'Send Files',
-  //     text: 'Are you sure you want to send these files?',
-  //     icon: 'warning',
-  //     iconColor: '#AF9918',
-  //     showCancelButton: true,
-  //     confirmButtonColor: '#AF9918',
-  //     cancelButtonColor: '#E0E0E0',
-  //     confirmButtonText: 'Yes Sure!',
-  //   }).then((result) => {
-  //     if (result.isConfirmed) {
-  //       setSelectedRows([]);
-  //       Swal.fire({
-  //         title: 'Sent!',
-  //         text: 'Your files have been Sent.',
-  //         icon: 'success',
-  //         timer: 2000,
-  //         showConfirmButton: false,
-  //       });
-  //     }
-  //   });
-  // };
 
   const handleSend = async () => {
     Swal.fire({
@@ -1972,11 +2113,11 @@ const MasterPage = () => {
                         </span>
                         BL Number
                       </th>
-                      
+
                       <th className="py-2 px-4 border-b text-center min-w-44 max-w-44 sticky left-44 bg-white z-10">
                         File Name
                       </th>
-                      
+
                       <th className="py-2 px-4 border-b text-center min-w-44 max-w-44 sticky left-[22rem] bg-white z-10">
                         Job Name
                       </th>
@@ -2058,7 +2199,7 @@ const MasterPage = () => {
                         </td>
                       </tr>
                     ) : (
-                      master.map((job) => {                   
+                      master.map((job) => {
                         return (
                           <tr key={job._id} className="text-gray-500">
                             <td className="py-2 px-4 border-b text-start m-0 sticky left-0 bg-white z-10">
@@ -2082,17 +2223,18 @@ const MasterPage = () => {
                                 </span>
                               </Link>
                             </td>
-                            
 
                             <FileNameCell
                               pdfUrl={job.pdfUrl}
                               fileId={job.fileName}
                             />
-                           
+
                             <td className="py-2 px-4 border-b text-center min-w-44 max-w-44 sticky left-[22rem] bg-white z-10">
                               {job.jobName}
                             </td>
-                             <TruncatedCell value={job.fileId || job._id || "N/A"} />
+                            <TruncatedCell
+                              value={job.fileId || job._id || "N/A"}
+                            />
 
                             <td className="py-2 px-4 border-b text-center">
                               {job.podDate}

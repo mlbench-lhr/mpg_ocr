@@ -5,6 +5,7 @@ import { getOracleConnection } from "@/lib/oracle";
 export async function POST(req: Request) {
   try {
     const { fileId } = await req.json();
+    console.log("Received fileId:", fileId);
 
     if (!fileId) {
       return NextResponse.json(

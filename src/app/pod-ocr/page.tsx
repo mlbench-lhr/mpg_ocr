@@ -141,14 +141,13 @@ export default function Page() {
     return newState;
   };
 
-const handlePageChange = (newPage: number) => {
-  if (newPage === 2) {
-    setAllowPageOneFetch(true);
-  }
+  const handlePageChange = (newPage: number) => {
+    if (newPage === 2) {
+      setAllowPageOneFetch(true);
+    }
 
-  setCurrentPage(newPage); // ✅ Always set page
-};
-
+    setCurrentPage(newPage); // ✅ Always set page
+  };
 
   const fetchPodData = useCallback(async () => {
     try {
@@ -173,21 +172,19 @@ const handlePageChange = (newPage: number) => {
     }
   }, [currentPage, filters, limit]);
 
-useEffect(() => {
-  if (
-    applyFilters ||
-    currentPage > 1 ||
-    (currentPage === 1 && allowPageOneFetch)
-  ) {
-    fetchPodData();
-    setApplyFilters(false);
-    if (currentPage === 1 && allowPageOneFetch) {
-      setAllowPageOneFetch(false);
+  useEffect(() => {
+    if (
+      applyFilters ||
+      currentPage > 1 ||
+      (currentPage === 1 && allowPageOneFetch)
+    ) {
+      fetchPodData();
+      setApplyFilters(false);
+      if (currentPage === 1 && allowPageOneFetch) {
+        setAllowPageOneFetch(false);
+      }
     }
-  }
-}, [applyFilters, currentPage, allowPageOneFetch]);
-
-
+  }, [applyFilters, currentPage, allowPageOneFetch]);
 
   if (!isAuthenticated) return <p>Access Denied. Redirecting...</p>;
 

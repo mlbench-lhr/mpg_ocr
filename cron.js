@@ -58,31 +58,46 @@ async function runOcrForJob(
     const fileList = await retrieveRes.json();
     console.log("file list-> ", fileList);
 
-    for (const item of fileList) {
+
+    const batchSize = 4;
+
+    for (let i = 0; i < fileList.length; i += batchSize) {
+      const batch = fileList.slice(i, i + batchSize);
+
       try {
-        const fileId = item.FILE_ID || item.file_id;
-        const fileTable = item.FILE_TABLE || item.file_table;
-        const fileRes = await fetch(
-          `http://localhost:3000/api/pod/file?fileId=${fileId}&fileTable=${fileTable}`
-        );
-        if (!fileRes.ok) continue;
+        const payload = [];
+        const fileMetaDataMap = new Map();
 
-        const fileData = await fileRes.json();
+        for (const item of batch) {
+          const fileId = item.FILE_ID || item.file_id;
+          const fileTable = item.FILE_TABLE || item.file_table;
 
-        await fetch("http://localhost:3000/api/pod/store", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ fileId: fileData.FILE_ID }),
-        });
+          const fileRes = await fetch(
+            `http://localhost:3000/api/pod/file?fileId=${fileId}&fileTable=${fileTable}`
+          );
+          if (!fileRes.ok) continue;
 
-        const filePath = `${baseUrl}/api/access-file?filename=${encodeURIComponent(
-          fileData.FILE_NAME
-        )}`;
-        console.log("file path-> ", filePath);
+          const fileData = await fileRes.json();
+          fileMetaDataMap.set(fileId, fileData);
+
+          await fetch("http://localhost:3000/api/pod/store", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ fileId: fileData.FILE_ID }),
+          });
+
+          const filePath = `${baseUrl}/api/access-file?filename=${encodeURIComponent(
+            fileData.FILE_NAME
+          )}`;
+          payload.push({ _id: fileId, file_url_or_path: filePath });
+        }
+
+        if (payload.length === 0) continue;
+
         const ocrRes = await fetch(ocrUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ _id: fileId, file_url_or_path: filePath }),
+          body: JSON.stringify(payload),
         });
 
         if (!ocrRes.ok) {
@@ -91,103 +106,110 @@ async function runOcrForJob(
         }
 
         const ocrData = await ocrRes.json();
-        console.log("ocrData-> ", ocrData);
+        console.log("OCR data received:", ocrData);
         if (!Array.isArray(ocrData)) continue;
+        const processedBatch = [];
 
-        const processed = ocrData.map((d) => ({
-          _id: fileId,
-          jobId: job._id,
-          fileId: fileId,
-          pdfUrl: decodeURIComponent(
-            new URL(filePath).searchParams.get("filename") || ""
-          ),
-          deliveryDate: new Date().toISOString().split("T")[0],
-          noOfPages: 1,
-          blNumber: String(d?.B_L_Number || ""),
-          podDate: d?.POD_Date || "",
-          podSignature: d?.Signature_Exists || "unknown",
-          totalQty: Number(d?.Issued_Qty) || 0,
-          received: Number(d?.Received_Qty) || 0,
-          damaged: d?.Damage_Qty,
-          short: d?.Short_Qty,
-          over: d?.Over_Qty,
-          refused: d?.Refused_Qty,
-          customerOrderNum: d?.Customer_Order_Num,
-          stampExists: d?.Stamp_Exists,
-          finalStatus: "valid",
-          reviewStatus: "unConfirmed",
+        for (const d of ocrData) {
+          const fileId = d._id;
+          const fileData = fileMetaDataMap.get(fileId);
+          if (!fileData) continue;
 
-          recognitionStatus:
-            {
-              failed: "failure",
-              valid: "valid",
-              "partially valid": "partiallyValid",
-            }[d?.Status] || "null",
-          breakdownReason: "none",
-          reviewedBy: "OCR Engine",
-          uptd_Usr_Cd: "OCR",
-          cargoDescription: "Processed from OCR API.",
-          none: "N",
-          sealIntact: d?.Seal_Intact === "yes" ? "Y" : "N",
-        }));
+          const filePath = `${baseUrl}/api/access-file?filename=${encodeURIComponent(
+            fileData.FILE_NAME
+          )}`;
 
-        const single = processed[0];
-        console.log("data-> ", ocrData);
-        // SAP BOL matching
-        try {
-          const basicAuth = Buffer.from(`${userName}:${passWord}`).toString(
-            "base64"
-          );
-          const response = await fetch(wmsUrl, {
-            method: "POST",
-            headers: {
-              Authorization: `Basic ${basicAuth}`,
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ BOLNo: [single.blNumber] }),
-          });
+          const processed = {
+            _id: fileId,
+            jobId: job._id,
+            fileId: fileId,
+            pdfUrl: decodeURIComponent(
+              new URL(filePath).searchParams.get("filename") || ""
+            ),
+            deliveryDate: new Date().toISOString().split("T")[0],
+            noOfPages: 1,
+            blNumber: String(d?.B_L_Number || ""),
+            podDate: d?.POD_Date || "",
+            podSignature: d?.Signature_Exists || "unknown",
+            totalQty: Number(d?.Issued_Qty) || 0,
+            received: Number(d?.Received_Qty) || 0,
+            damaged: d?.Damage_Qty,
+            short: d?.Short_Qty,
+            over: d?.Over_Qty,
+            refused: d?.Refused_Qty,
+            customerOrderNum: d?.Customer_Order_Num,
+            stampExists: d?.Stamp_Exists,
+            finalStatus: "valid",
+            reviewStatus: "unConfirmed",
+            recognitionStatus:
+              {
+                failed: "failure",
+                valid: "valid",
+                "partially valid": "partiallyValid",
+              }[d?.Status] || "null",
+            breakdownReason: "none",
+            reviewedBy: "OCR Engine",
+            uptd_Usr_Cd: "OCR",
+            cargoDescription: "Processed from OCR API.",
+            none: "N",
+            sealIntact: d?.Seal_Intact === "yes" ? "Y" : "N",
+          };
+          console.log("Processed data:", processed._id);
+          // SAP Match
+          try {
+            const basicAuth = Buffer.from(`${userName}:${passWord}`).toString(
+              "base64"
+            );
+            const response = await fetch(wmsUrl, {
+              method: "POST",
+              headers: {
+                Authorization: `Basic ${basicAuth}`,
+                Accept: "application/json",
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ BOLNo: [processed.blNumber] }),
+            });
 
-          const sapData = await response.json();
-          if (sapData[0]?.BOLNo?.trim() === single.blNumber.trim()) {
-            single.recognitionStatus = "valid";
-            processed[0].recognitionStatus = "valid";
-          } else {
-            single.recognitionStatus = "failure";
-            processed[0].recognitionStatus = "failure";
+            const sapData = await response.json();
+            processed.recognitionStatus =
+              sapData[0]?.BOLNo?.trim() === processed.blNumber.trim()
+                ? "valid"
+                : "failure";
+          } catch (err) {
+            console.error("SAP check error:", err.message);
           }
-        } catch (err) {
-          console.error("SAP check error:", err.message);
-        }
-        console.log("data1-> ", ocrData);
 
+          processedBatch.push(processed);
+        }
+
+        // ✅ Now send the batch (once) to update API
         const confirmRes = await fetch(
           "http://localhost:3000/api/settings/auto-confirmation"
         );
         const confirmJson = await confirmRes.json();
-        console.log("data2-> ", ocrData);
 
-
-        if (confirmJson.isAutoConfirmationOpen) {
+        if (confirmJson.isAutoConfirmationOpen && processedBatch.length > 0) {
           await fetch("http://localhost:3000/api/pod/update", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fileId: fileData.FILE_ID,
-              ocrData: single,
-            }),
+            body: JSON.stringify({ ocrDataList: processedBatch }),
           });
         }
 
-        await fetch("http://localhost:3000/api/process-data/save-data", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(processed),
-        });
+        // ✅ Save the batch to DB
+        if (processedBatch.length > 0) {
+          await fetch("http://localhost:3000/api/process-data/save-data", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(processedBatch),
+          });
 
-        console.log(`File ${fileId} processed.`);
+          for (const entry of processedBatch) {
+            console.log(`File ${entry.fileId} processed.`);
+          }
+        }
       } catch (err) {
-        console.error("File processing error:", err);
+        console.error("Batch processing error:", err);
       }
     }
   } catch (err) {
@@ -319,4 +341,4 @@ waitForAPI();
 setInterval(() => {
   console.log("Checking for updated jobs...");
   scheduleJobs();
-}, 60000);
+}, 120000);
