@@ -54,7 +54,6 @@ export default function LoginPage() {
 
         const dbData = await dbRes.json();
 
-        console.log("dbData-> ", dbData);
         if (!dbRes.ok)
           throw new Error(dbData.message || "Failed to fetch DB data");
 

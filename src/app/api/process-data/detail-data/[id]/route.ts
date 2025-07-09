@@ -159,7 +159,6 @@ export async function GET(req: Request) {
     if (!job) {
       return NextResponse.json({ error: "Job not found" }, { status: 404 });
     }
-    console.log("connection2-> ", dbType);
     return NextResponse.json(
       {
         job,

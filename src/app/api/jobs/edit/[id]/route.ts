@@ -36,16 +36,26 @@ export async function PATCH(req: NextRequest) {
   try {
     const id = new URL(req.url).pathname.split("/").pop();
     const body = await req.json();
-    const { selectedDays, fromTime, toTime, everyTime, active, dayOffset,fetchLimit } =
-      body;
+    const {
+      selectedDays,
+      fromTime,
+      toTime,
+      everyTime,
+      active,
+      dayOffset,
+      fetchLimit,
+    } = body;
+    console.log("Request body:", dayOffset);
 
     if (
       !selectedDays?.length ||
       !fromTime ||
       !toTime ||
       !everyTime ||
-      !dayOffset||
-      !fetchLimit
+      dayOffset === undefined ||
+      dayOffset === null ||
+      fetchLimit === undefined ||
+      fetchLimit === null
     ) {
       return NextResponse.json(
         { error: "All fields are required." },

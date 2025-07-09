@@ -27,8 +27,10 @@ export async function POST(req: Request) {
       !fromTime ||
       !toTime ||
       !everyTime ||
-      !dayOffset ||
-      !fetchLimit
+     dayOffset === undefined ||
+      dayOffset === null ||
+      fetchLimit === undefined ||
+      fetchLimit === null
     ) {
       return NextResponse.json(
         { error: "All fields are required." },

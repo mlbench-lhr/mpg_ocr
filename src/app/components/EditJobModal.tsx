@@ -26,10 +26,9 @@ const EditJobModal: React.FC<EditJobModalProps> = ({
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>("");
-  const [dayOffset, setDayOffset] = useState(0);
+  const [dayOffset, setDayOffset] = useState<number>(0);
   const [availableTimes, setAvailableTimes] = useState<string[]>([]);
   const [fetchLimit, setFetchLimit] = useState<number>(5000);
-
 
   const formatTime = (date: Date): string => {
     const hours = date.getHours().toString().padStart(2, "0");
@@ -161,7 +160,7 @@ const EditJobModal: React.FC<EditJobModalProps> = ({
       everyTime,
       active: job.active,
     };
-
+console.log("Updated Job:", updatedJob);
     try {
       const response = await fetch(`/api/jobs/edit/${job._id}`, {
         method: "PATCH",
@@ -192,9 +191,7 @@ const EditJobModal: React.FC<EditJobModalProps> = ({
     setEveryTime(job.everyTime);
     setDayOffset(job.dayOffset);
     setFetchLimit(job.fetchLimit);
-
   }, [job]);
-
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
@@ -319,21 +316,15 @@ const EditJobModal: React.FC<EditJobModalProps> = ({
               className="w-full px-4 py-[6px] mt-1 border rounded-md text-gray-800 focus:outline-none focus:ring-2 mb-5"
               type="number"
               placeholder="Enter Day Offset"
-              value={dayOffset === 0 ? "" : dayOffset}
+              value={dayOffset.toString()}
               onChange={(e) => {
                 const value = e.target.value;
-                if (value === "") {
-                  setDayOffset(0);
-                } else {
-                  const parsed = parseInt(value, 10);
-                  if (!isNaN(parsed)) {
-                    setDayOffset(parsed);
-                  }
-                }
+                const parsed = parseInt(value, 10);
+                setDayOffset(isNaN(parsed) ? 0 : parsed);
               }}
             />
           </div>
-            <div>
+          <div>
             <label
               htmlFor="fetchLimit"
               className="text-sm font-semibold text-gray-800"

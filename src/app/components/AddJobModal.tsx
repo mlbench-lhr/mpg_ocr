@@ -23,7 +23,7 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ onClose, onSubmit }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [everyTime, setEveryTime] = useState("");
-  const [dayOffset, setDayOffset] = useState<number>(0);
+  const [dayOffset, setDayOffset] = useState<string>("");
   const [fetchLimit, setFetchLimit] = useState<number>(5000);
   const [time, setTime] = useState<Date | null>(null);
   const [fromTime, setFromTime] = useState<string | null>("");
@@ -123,7 +123,7 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ onClose, onSubmit }) => {
 
     const jobData: Job = {
       _id: "",
-      dayOffset,
+      dayOffset: parseInt(dayOffset || "0", 10),
       selectedDays,
       fetchLimit,
       fromTime,
@@ -305,18 +305,8 @@ const AddJobModal: React.FC<AddJobModalProps> = ({ onClose, onSubmit }) => {
                 className="w-full px-4 py-[6px] mt-1 border rounded-md text-gray-800 focus:outline-none focus:ring-2 mb-5"
                 type="number"
                 placeholder="Enter Day Offset"
-                value={dayOffset === 0 ? "" : dayOffset}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (value === "") {
-                    setDayOffset(0); // Or set to undefined if preferred
-                  } else {
-                    const parsed = parseInt(value, 10);
-                    if (!isNaN(parsed)) {
-                      setDayOffset(parsed);
-                    }
-                  }
-                }}
+                value={dayOffset}
+                onChange={(e) => setDayOffset(e.target.value)}
               />
             </div>
           </div>
